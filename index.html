@@ -1,0 +1,387 @@
+<style>
+/* Updating color variables for better contrast in dark mode */
+:root {
+  --bg-color: #f5f5f5;
+  --container-bg: white;
+  --text-color: #2c3e50;
+  --card-bg: white;
+  --card-border: #ddd;
+  --link-color: #3498db;
+}
+
+[data-theme="dark"] {
+  --bg-color: #1a1a1a;
+  --container-bg: #2d2d2d;
+  --text-color: #e0e0e0;
+  --card-bg: #363636;
+  --card-border: #404040;
+  --link-color: #5fa8e5;  /* Lighter blue for dark mode */
+}
+
+/* Rest of the styles remain the same but using color variables */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  line-height: 1.5;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  background: var(--bg-color);
+  color: var(--text-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.container {
+  background: var(--container-bg);
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.theme-toggle {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: background-color 0.3s;
+}
+
+.theme-toggle:hover {
+  background: rgba(0,0,0,0.1);
+}
+
+h1 {
+  color: var(--text-color);
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.search-form {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.search-group {
+  display: flex;
+  gap: 1rem;
+}
+
+input, select {
+  padding: 0.5rem;
+  border: 1px solid var(--card-border);
+  border-radius: 4px;
+  font-size: 1rem;
+  background: var(--card-bg);
+  color: var(--text-color);
+}
+
+input[type="text"] {
+  flex: 1;
+}
+
+button {
+  background: var(--link-color);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background 0.2s;
+}
+
+button:hover {
+  background: #2980b9;
+}
+
+.results {
+  margin-top: 2rem;
+}
+
+.paper-card {
+  background: var(--card-bg);
+  padding: 1rem;
+  border: 1px solid var(--card-border);
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.paper-title {
+  color: var(--text-color);
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+}
+
+.paper-authors {
+  color: var(--text-color);
+  margin-bottom: 0.5rem;
+}
+
+.author-name {
+  color: var(--link-color) !important;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.publisher-name {
+  color: var(--text-color);
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.paper-meta {
+  font-size: 0.9rem;
+  color: var(--text-color);
+}
+
+.paper-meta a {
+  color: var(--link-color);
+}
+
+.journal-name {
+  font-style: italic;
+  color: var(--text-color);
+  margin-bottom: 0.5rem;
+}
+
+.loader {
+  display: none;
+  text-align: center;
+  margin: 2rem 0;
+}
+
+.loader svg {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.error {
+  color: #e74c3c;
+  text-align: center;
+  margin: 1rem 0;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+</style>
+</head>
+<body>
+<button class="theme-toggle" onclick="toggleTheme()">☀️</button>
+<div class="container">
+  <h1>Academic Paper Search</h1>
+  
+  <div class="search-form">
+    <div class="search-group">
+      <select id="searchType">
+        <option value="query">General Search</option>
+        <option value="query.author">Author</option>
+        <option value="doi">DOI</option>
+        <option value="query.container-title">Journal</option>
+      </select>
+      <input type="text" id="searchInput" placeholder="Enter search terms...">
+      <button onclick="search()">Search</button>
+    </div>
+    
+    <div class="search-group">
+      <select id="sortBy">
+        <option value="relevance">Sort by Relevance</option>
+        <option value="published">Publication Date</option>
+        <option value="updated">Last Updated</option>
+        <option value="is-referenced-by-count">Citation Count</option>
+      </select>
+      <select id="orderBy">
+        <option value="desc">Descending</option>
+        <option value="asc">Ascending</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="loader">
+    <svg width="24" height="24" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="10" fill="none" stroke="#3498db" stroke-width="4" />
+    </svg>
+  </div>
+
+  <div id="error" class="error"></div>
+  <div id="results" class="results"></div>
+  
+  <div class="pagination">
+    <button id="prevPage" onclick="previousPage()" disabled>Previous</button>
+    <button id="nextPage" onclick="nextPage()" disabled>Next</button>
+  </div>
+</div>
+
+<script>
+function displayResults(items) {
+  const resultsDiv = document.getElementById('results');
+  
+  items.forEach(item => {
+    const paperCard = document.createElement('div');
+    paperCard.className = 'paper-card';
+    
+    const title = item.title ? item.title[0] : 'No title available';
+    const authors = item.author ? item.author.map(author => {
+      const name = `${author.given || ''} ${author.family || ''}`;
+      return `<span class="author-name" onclick="searchAuthor('${author.given || ''} ${author.family || ''}')">${name}</span>`;
+    }).join(', ') : 'No authors available';
+    
+    const doi = item.DOI || 'No DOI available';
+    const published = item.published ? item.published['date-parts'][0][0] : 'No date available';
+    const publisher = item.publisher || 'Publisher not available';
+    const journalName = item['container-title'] ? item['container-title'][0] : 'Journal name not available';
+    
+    let issnInfo = '';
+    if (item['issn-type']) {
+      const issns = item['issn-type'].map(issn => {
+        return `${issn.type.toUpperCase()}: ${issn.value}`;
+      }).join(' | ');
+      issnInfo = `<div class="paper-meta">ISSN Information: ${issns}</div>`;
+    }
+    
+    paperCard.innerHTML = `
+      <div class="paper-title">${title}</div>
+      <div class="paper-authors">${authors}</div>
+      <div class="publisher-name">Publisher: ${publisher}</div>
+      <div class="journal-name">Journal: ${journalName}</div>
+      <div class="paper-meta">
+        DOI: <a href="https://doi.org/${doi}" target="_blank">${doi}</a> | 
+        Published: ${published}
+      </div>
+      ${issnInfo}
+    `;
+    
+    resultsDiv.appendChild(paperCard);
+  });
+}
+
+function toggleTheme() {
+  const body = document.body;
+  const themeToggle = document.querySelector('.theme-toggle');
+  
+  if (body.getAttribute('data-theme') === 'dark') {
+    body.removeAttribute('data-theme');
+    themeToggle.textContent = '☀️';
+  } else {
+    body.setAttribute('data-theme', 'dark');
+    themeToggle.textContent = '🌙';
+  }
+}
+
+const API_BASE = 'https://api.crossref.org/works';
+let currentOffset = 0;
+const ROWS_PER_PAGE = 10;
+
+async function search(offset = 0) {
+  const searchType = document.getElementById('searchType').value;
+  const searchInput = document.getElementById('searchInput').value;
+  const sortBy = document.getElementById('sortBy').value;
+  const orderBy = document.getElementById('orderBy').value;
+  
+  if (!searchInput.trim()) {
+    showError('Please enter a search term');
+    return;
+  }
+
+  showLoader(true);
+  clearResults();
+  clearError();
+
+  try {
+    let url = `${API_BASE}?rows=${ROWS_PER_PAGE}&offset=${offset}&sort=${sortBy}&order=${orderBy}`;
+    
+    if (searchType === 'doi') {
+      url += `&filter=doi:${encodeURIComponent(searchInput)}`;
+    } else {
+      url += `&${searchType}=${encodeURIComponent(searchInput)}`;
+    }
+
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (data.message.items.length === 0) {
+      showError('No results found');
+      return;
+    }
+
+    displayResults(data.message.items);
+    updatePagination(data.message.total_results);
+  } catch (error) {
+    showError('An error occurred while fetching results');
+    console.error(error);
+  } finally {
+    showLoader(false);
+  }
+}
+
+function searchAuthor(authorName) {
+  document.getElementById('searchType').value = 'query.author';
+  document.getElementById('searchInput').value = authorName;
+  currentOffset = 0;
+  search();
+}
+
+function updatePagination(totalResults) {
+  const prevButton = document.getElementById('prevPage');
+  const nextButton = document.getElementById('nextPage');
+  
+  prevButton.disabled = currentOffset === 0;
+  nextButton.disabled = currentOffset + ROWS_PER_PAGE >= totalResults;
+}
+
+function previousPage() {
+  if (currentOffset > 0) {
+    currentOffset -= ROWS_PER_PAGE;
+    search(currentOffset);
+  }
+}
+
+function nextPage() {
+  currentOffset += ROWS_PER_PAGE;
+  search(currentOffset);
+}
+
+function showLoader(show) {
+  document.querySelector('.loader').style.display = show ? 'block' : 'none';
+}
+
+function showError(message) {
+  const errorDiv = document.getElementById('error');
+  errorDiv.textContent = message;
+  errorDiv.style.display = 'block';
+}
+
+function clearError() {
+  document.getElementById('error').style.display = 'none';
+}
+
+function clearResults() {
+  document.getElementById('results').innerHTML = '';
+}
+
+document.getElementById('searchInput').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    currentOffset = 0;
+    search();
+  }
+});
+</script>
+</body></html>
